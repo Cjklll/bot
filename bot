@@ -1,0 +1,237 @@
+import telebot
+from telebot import types
+import openpyxl
+import sqlite3
+
+
+
+bot = telebot.TeleBot('')
+
+# Excel-файлхранения анкет
+workbook = openpyxl.Workbook()
+sheet = workbook.active
+sheet.append(["Имя", "Возраст", "Пол", "Email", "Диабет", "Стенокардия","Почки", "Инфаркт","Инсульт"])
+
+
+conn = sqlite3.connect("my_chat_bot.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS people (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT
+    )
+""")
+
+conn.commit()
+conn.close()
+
+
+# Обработчик команды /start
+@bot.message_handler(commands=['start'])
+def start(message):
+    username = message.from_user.username
+    first_name = message.from_user.first_name
+    last_name = message.from_user.last_name
+    chat_id = message.chat.id
+
+
+    markup = types.ReplyKeyboardRemove(selective=False)
+    bot.send_message(message.chat.id, "Здравствуйте! Давайте начнем заполнять анкету.\nВведите свое ФИО:", reply_markup=markup)
+
+
+   # Регистрируем обработчик следующего шага с передачей conn и cursor
+    bot.register_next_step_handler(message, process_name_step)
+
+# Обработчик для имени
+def process_name_step(message):
+    chat_id = message.chat.id
+    name = message.text
+
+
+
+    # Сохраняем имя в анкете
+    sheet.append([name])
+    workbook.save("anketa.xlsx")
+
+    conn = sqlite3.connect("my_chat_bot.db")
+    cursor = conn.cursor()
+
+    # Сохраняем имя в базе данных
+    cursor.execute("INSERT INTO people (name) VALUES (?)", (name,))
+    conn.commit()
+
+    conn.close()
+
+
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add("Мужской", "Женский")
+
+    bot.send_message(chat_id, "Выберите ваш пол:", reply_markup=markup)
+    bot.register_next_step_handler(message, process_gender_step)
+# Обработчик для пола
+def process_gender_step(message):
+    chat_id = message.chat.id
+    gender = message.text
+
+    # Сохраняем пол в анкете
+    sheet.cell(row=sheet.max_row, column=2, value=gender)
+    workbook.save("anketa.xlsx")
+
+    conn = sqlite3.connect("my_chat_bot.db")
+    cursor = conn.cursor()
+
+    # Сохраняем имя в базе данных
+    cursor.execute("INSERT INTO people (gender) VALUES (?)", (gender,))
+    conn.commit()
+
+    conn.close()
+
+
+    bot.send_message(chat_id, "Введите ваш возраст:")
+    bot.register_next_step_handler(message, process_age_step)
+
+# Обработчик для возраста
+def process_age_step(message):
+    chat_id = message.chat.id
+    age = message.text
+
+    # Сохраняем возраст в анкете
+    sheet.cell(row=sheet.max_row, column=3, value=age)
+    workbook.save("anketa.xlsx")
+
+
+
+
+
+
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add("Да", "Нет")
+
+    bot.send_message(chat_id, "Говорил ли Вам врач когда-либо, что у Вас имеется диабет?:", reply_markup=markup)
+    bot.register_next_step_handler(message, process_dia_step)
+
+# Обработчик для диабета
+def process_dia_step(message):
+    chat_id = message.chat.id
+    dia = message.text
+
+    # Сохраняем диабет в анкете
+    sheet.cell(row=sheet.max_row, column=5, value=dia)
+    workbook.save("anketa.xlsx")
+
+
+
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add("Да", "Нет")
+
+    bot.send_message(chat_id, "Говорил ли Вам врач когда-либо, что у Вас имеется ишемическая болезнь сердца (стенокардия)?:", reply_markup=markup)
+    bot.register_next_step_handler(message, process_steno_step)
+
+
+# Обработчик для стенекардия
+def process_steno_step(message):
+    chat_id = message.chat.id
+    steno = message.text
+
+    # Сохраняем стенокардию в анкете
+    sheet.cell(row=sheet.max_row, column=6, value=steno)
+    workbook.save("anketa.xlsx")
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add("Да", "Нет")
+
+    bot.send_message(chat_id, "Говорил ли Вам врач когда-либо, что у Вас имеется хроническое заболевание почек?:",
+                     reply_markup=markup)
+    bot.register_next_step_handler(message, process_pochki_step)
+
+
+# Обработчик для почки
+def process_pochki_step(message):
+    chat_id = message.chat.id
+    pocki = message.text
+
+    # Сохраняем почки в анкете
+    sheet.cell(row=sheet.max_row, column=7, value=pocki)
+    workbook.save("anketa.xlsx")
+
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add("Да", "Нет")
+
+    bot.send_message(chat_id, "Говорил ли Вам врач когда-либо, что у Вас имеется хроническое заболевание почек?:", reply_markup=markup)
+    bot.register_next_step_handler(message, process_pochki_step)
+
+
+# Обработчик для почки
+def process_pochki_step(message):
+    chat_id = message.chat.id
+    pocki = message.text
+
+    # Сохраняем почки в анкете
+    sheet.cell(row=sheet.max_row, column=7, value=pocki)
+    workbook.save("anketa.xlsx")
+
+
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add("Да", "Нет")
+
+    bot.send_message(chat_id, "Был ли у Вас инфаркт миокарда?:", reply_markup=markup)
+    bot.register_next_step_handler(message, process_inf_step)
+
+
+# Обработчик для инфаркт
+def process_inf_step(message):
+    chat_id = message.chat.id
+    inf = message.text
+
+    # Сохраняем инфаркт в анкете
+    sheet.cell(row=sheet.max_row, column=8, value=inf)
+    workbook.save("anketa.xlsx")
+
+
+
+
+
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    markup.add("Да", "Нет")
+
+    bot.send_message(chat_id, "Был ли у Вас инсульт?:", reply_markup=markup)
+    bot.register_next_step_handler(message, process_ins_step)
+
+
+# Обработчик для инсульт
+def process_ins_step(message):
+    chat_id = message.chat.id
+    ins = message.text
+
+    # Сохраняем инсульт в анкете
+    sheet.cell(row=sheet.max_row, column=9, value=ins)
+    workbook.save("anketa.xlsx")
+
+
+
+
+
+    bot.send_message(chat_id, "Введите ваш Email:")
+    bot.register_next_step_handler(message, process_email_step)
+
+
+# Обработчик для Email
+def process_email_step(message):
+    chat_id = message.chat.id
+    email = message.text
+
+    # Сохраняем Email в анкете
+    sheet.cell(row=sheet.max_row, column=4, value=email)
+    workbook.save("anketa.xlsx")
+
+
+    bot.send_message(chat_id, "Спасибо за заполнение анкеты! Ваша анкета сохранена.")
+
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
